@@ -24,7 +24,7 @@
  */
 function processTestAndLoadNext(testUrls) {
 	var testPage, testUrl, loadingTime, loadingTimeout;
-	
+
 	// loadingTimeout is how long (in MS) we wait for testPage.evaluate
 	// to succesfully evaluate the QUnit HTML. If this time is exceeded,
 	// then we proceed to the next test or end processing if no more tests
@@ -33,32 +33,32 @@ function processTestAndLoadNext(testUrls) {
 	// This should be less than the timeout declared in
 	// JSTestResultServer.java (which is currently 30s)
 	loadingTimeout = 20000;
-	
+
 	testUrl = testUrls[0];
 	testUrls.splice(0, 1);
 
 	testPage = new WebPage();
-	
+
 	testPage.onConsoleMessage = function(msg) {
 		console.log(msg);
 	};
 
 	testPage.open(testUrl, function(status) {
 		var testResultChecker;
-		
+
 		if (status === "success"){
 			testResultChecker = setInterval(function() {
 				var testResultsProcessed;
-				
+
 				testResultsProcessed = testPage.evaluate(function() {
-					var testResultsProcessed, testResults, testResultElem;
-			
+                    var testResultsProcessed, testResults, testResultElem,jasmineTestResultElem;
+
 					/**
 					 * Notify the notifier using an HTTP POST. We send it asynchronously and don't
 					 * bother about a response. If tests fail at the consuming end then this should
 					 * an exception rather than the rule. Failing tests are better than false
 					 * positives.
-					 * 
+					 *
 					 * @param testUrl
 					 *            the url of the test document the test relates to.
 					 * @param moduleName
@@ -128,13 +128,13 @@ function processTestAndLoadNext(testUrls) {
 					/**
 					 * Parse the document for test results.
 					 */
-					function getTestResults() {
+                    function evaluateQUnitTestResults() {
 						var details, failed, i, j, nodeList, message, messageElem, moduleName, passed, testsElem, testItemElem, testItemElems, testName, testResults;
 
 						function getFailedTestText(node, className) {
 							var elem;
 							elem = node.getElementsByClassName(className);
-							return (elem.length > 0? 
+							return (elem.length > 0?
 								elem[0].getElementsByTagName("pre")[0].innerText :
 								undefined);
 						}
@@ -200,7 +200,7 @@ function processTestAndLoadNext(testUrls) {
 											});
 										}
 									}
-									
+
 									testResults.push({
 										moduleName : moduleName,
 										testName : testName,
@@ -213,72 +213,146 @@ function processTestAndLoadNext(testUrls) {
 
 						} else {
 							console.log("Cannot find #qunit-tests element. Skipping test results.");
-							
+
 						}
-						
+
 						return testResults;
 					}
 
+                    /**
+                     * Parse the document for test results.
+                     */
+                    function evaluateJasmineTestResults() {
+                        var summaryNode, details, failed, i, j, nodeList, message, moduleName, passed, suiteElem, suiteElems, specs, testName, testResults;
+
+
+                        testResults = [];
+
+                        summaryNode = document.getElementById("HTMLReporter").getElementsByClassName("summary")[0];
+                        if (summaryNode !== null) {
+
+                            suiteElems = summaryNode.getElementsByClassName("suite");
+
+                            // For each suite, collect the test results
+                            for (i = 0; i < suiteElems.length; ++i) {
+                                // Extract the microformatted data.
+                                suiteElem = suiteElems[i];
+
+                                // Not interested in the detailed messages.
+                                if (suiteElem.parentNode === summaryNode) {
+                                    nodeList = suiteElem.childNodes;
+                                    moduleName = nodeList[0].text;
+
+                                    specs = summaryNode.getElementsByClassName("specSummary");
+
+                                    // For each suite, collect the test results
+                                    for (i = 0; i < specs.length; ++i) {
+
+                                        testName = specs[i].childNodes[0].text;
+
+
+                                        failed = specs[i].getAttribute("class").indexOf("failed") !== -1 ? 1 : 0;
+                                        passed = specs[i].getAttribute("class").indexOf("passed") !== -1 ? 1 : 0;
+
+                                        details = [];
+                                        details.push({
+                                            message: "message"
+                                        });
+
+                                        testResults.push({
+                                            moduleName: moduleName,
+                                            testName: testName,
+                                            failed: failed,
+                                            passed: passed,
+                                            details: details
+                                        });
+                                    }
+                                }
+                            }
+
+                        } else {
+                            console.log("Cannot find #qunit-tests element. Skipping test results.");
+
+                        }
+
+                        return testResults;
+                    }
+
+
 					testResultElem = document.getElementById("qunit-testresult");
+
+                    jasmineTestResultElem = document.getElementById("HTMLReporter");
 
 					if (testResultElem && testResultElem.innerText.match("completed")) {
 
 						// Tests are complete. Drill down and extract all the test
 						// results from this one file.
-			
-						testResults = getTestResults();
-						
+
+                        testResults = evaluateQUnitTestResults();
+
 						// Pass the data on for all tests per given test url.
 
-						notify(document.location.href, testResults);
+                        notify(document.location.href, testResults);
 
 						// Signal that we're done processing the test results.
-						
+
+                        testResultsProcessed = true;
+
+                    } else if (jasmineTestResultElem && jasmineTestResultElem.getElementsByClassName("pending").length === 0) {
+                        //todo  pending als subelements von symbolSummary
+                        // Tests are complete. Drill down and extract all the test
+                        // results from this one file.
+                        testResults = evaluateJasmineTestResults();
+
+                        // Pass the data on for all tests per given test url.
+                        notify(document.location.href, testResults);
+
+                        // Signal that we're done processing the test results.
 						testResultsProcessed = true;
-						
+
 					} else {
 						testResultsProcessed = false;
 					}
-					
+
 					return testResultsProcessed;
 				});
-			
+
 				/**
 				 * Continue with the next test, or exit if all tests are complete.
 				 */
 				function proceedWithTests() {
 					// Discontinue our checking for test results as we now have them.
-					
+
 					clearInterval(testResultChecker);
-					
+
 					// Run the next test or exit if no more.
 
 					if (testUrls.length === 0) {
 						phantom.exit();
-					} else {					
+					} else {
 						processTestAndLoadNext(testUrls);
 					}
 				}
-				
+
 				if (testResultsProcessed) {
 					proceedWithTests();
-					
+
 				} else {
-					
+
 					// If we're reached the timeout waiting for this test:
 					if (new Date().getTime() >= loadingTime + loadingTimeout) {
 						console.log("Unable to process test results, timed out");
-						
+
 						proceedWithTests();
 					}
 				}
-				
+
 			}, 100);
 
 		} else {
 			phantom.exit();
 		}
-	
+
 	});
 }
 
