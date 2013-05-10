@@ -27,7 +27,7 @@
  * Note also the tests are tightly coupled with run-qunit.js, we wait for a
  * little longer than the timeout defined in that file in tests which expect
  * a timeout, for example.
- * 
+ *
  * @author Ben Jones
  */
 

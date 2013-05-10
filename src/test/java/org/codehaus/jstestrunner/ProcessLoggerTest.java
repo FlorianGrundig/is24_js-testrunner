@@ -53,7 +53,7 @@ public class ProcessLoggerTest {
 		// Expect that input stream has been exhausted
 		assertEquals("input stream exhausted", 0, bais.available());
 	}
-	
+
 	/**
 	 * run method waits for exit code when in Level.FINE
 	 */
