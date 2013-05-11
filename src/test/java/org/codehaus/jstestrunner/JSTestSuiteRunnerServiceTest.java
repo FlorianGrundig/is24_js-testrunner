@@ -50,4 +50,22 @@ public class JSTestSuiteRunnerServiceTest {
 		assertEquals(1, urls.size());
 		assertEquals("/QUnitTest.html", urls.get(0).getPath());
 	}
+
+	@Test
+	public void testScanTestFilesWithExternalResourceProvider() {
+		String[] resourceBases = new String[] { "target" + File.separator
+				+ "test-classes" };
+		String[] includes = new String[] { "**/QUnitTest.html" };
+		String[] excludes = new String[0];
+
+		List<URL> urls = JSTestSuiteRunnerService.scanTestFiles("http://localhost:9090/foo/bar/",
+				resourceBases, includes, excludes);
+		assertEquals(1, urls.size());
+		assertEquals("http://localhost:9090/foo/bar/QUnitTest.html", urls.get(0).toString());
+
+		urls = JSTestSuiteRunnerService.scanTestFiles("http://localhost:9090/foo/bar",
+				resourceBases, includes, excludes);
+		assertEquals(1, urls.size());
+		assertEquals("http://localhost:9090/foo/bar/QUnitTest.html", urls.get(0).toString());
+	}
 }

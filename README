@@ -1,0 +1,8 @@
+Forked JSTestRunner (http://http://js-testrunner.codehaus.org/):
+
+- can execute Jasminie tests too
+- can execute as integration tests too (experimental)
+    TODO:
+    - rename run-qunit.js, because it also parses jasmine tests
+    - use parameter (host, port) for result reporting url
+    - move header declaration for allowing origins * out of JSTestResultHandler

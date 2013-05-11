@@ -99,6 +99,19 @@ public class JSTestSuiteRunner extends ParentRunner<URL> {
 		String value();
 	}
 
+    /**
+	 * Describes the url prefix (host and port and path) of external resource provider using the
+	 * protocol://host:port/path convention.
+     * Currently is only one external resource provider configurable, which has to handle all your
+     * configured ResourceBase(s).
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.TYPE)
+	@Inherited
+	public @interface ResourceProvider {
+		String value();
+	}
+
 	/**
 	 * Describes the URL patterns that are to be included for test execution.
 	 */
@@ -193,6 +206,16 @@ public class JSTestSuiteRunner extends ParentRunner<URL> {
 
 		}
 
+		// Set up external resource provider.
+		ResourceProvider resourceProviderAnnotation = testClass
+				.getAnnotation(ResourceProvider.class);
+		String externalResourceProvider = null;
+        boolean useExternalResourceProvider = false;
+		if (resourceProviderAnnotation != null) {
+            externalResourceProvider = resourceProviderAnnotation.value();
+            useExternalResourceProvider = true;
+		}
+
 		// Set up our context path.
 		ContextPath contextPathAnnotation = testClass
 				.getAnnotation(ContextPath.class);
@@ -253,9 +276,14 @@ public class JSTestSuiteRunner extends ParentRunner<URL> {
 		/**
 		 * Determine the URLs representing the tests.
 		 */
-		urls = JSTestSuiteRunnerService.scanTestFiles(host, port,
-				resourceBases, includes, excludes);
 
+        if (useExternalResourceProvider){
+            urls = JSTestSuiteRunnerService.scanTestFiles(externalResourceProvider,
+                    resourceBases, includes, excludes);
+        } else {
+		    urls = JSTestSuiteRunnerService.scanTestFiles(host, port,
+			    	resourceBases, includes, excludes);
+        }
 		jSTestSuiteRunnerService = new JSTestSuiteRunnerService();
 		JSTestExecutionServer jSTestExecutionServer = new JSTestExecutionServer();
 		jSTestExecutionServer.setCommandPattern(commandPattern);
@@ -265,8 +293,12 @@ public class JSTestSuiteRunner extends ParentRunner<URL> {
 		JSTestResultServer jSTestResultServer = new JSTestResultServer();
 		jSTestResultServer.setContextPath(contextPath);
 		jSTestResultServer.setPort(port);
-		jSTestResultServer.setResourceBases(resourceBases);
 
+		if (!useExternalResourceProvider){
+            jSTestResultServer.setResourceBases(resourceBases);
+        } else {
+            jSTestResultServer.setResourceBases(new String[]{});
+        }
 		jSTestSuiteRunnerService
 				.setjSTestExecutionServer(jSTestExecutionServer);
 		jSTestSuiteRunnerService.setjSTestResultServer(jSTestResultServer);

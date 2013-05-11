@@ -111,8 +111,27 @@ public class JSTestResultHandler extends AbstractHandler {
 	public void handle(String target, Request baseRequest,
 			HttpServletRequest request, HttpServletResponse response)
 			throws IOException, ServletException {
+
+
+        if (target.equals("/testResults") && request.getMethod().equals("OPTIONS")) {
+            /*
+             * We need to allow other origins, because the test results could be send
+             * from a real web app (integration tests)
+             */
+            // TODO define response headers somewhere different than here
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+            return;
+        }
+
 		if (target.equals("/testResults") && request.getMethod().equals("POST")
 				&& request.getContentType().contains("application/json")) {
+
+            // TODO define response headers somewhere different than here
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
 			JSTestResult jsTestResult = null;
 

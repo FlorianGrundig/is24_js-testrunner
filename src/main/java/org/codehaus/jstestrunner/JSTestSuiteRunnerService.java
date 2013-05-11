@@ -77,6 +77,29 @@ public class JSTestSuiteRunnerService {
 		}
 		return relativeUrls;
 	}
+    /**
+	 * Convert an array of relative file paths to URLs.
+	 *
+	 * @param includedFiles
+	 *            the relative file paths.
+	 * @return a collection of relative urls.
+	 */
+	private static Collection<URL> relativeFilepathsAsUrls(String externalResourceProviderUrlPrefix, String[] includedFiles) {
+        String baseUrl = externalResourceProviderUrlPrefix;
+        if (!baseUrl.endsWith("/")){
+            baseUrl += '/';
+        }
+		Collection<URL> relativeUrls = new ArrayList<URL>(includedFiles.length);
+		for (String includedFile : includedFiles) {
+			try {
+                relativeUrls.add(new URL(new URL(baseUrl),
+                        includedFile.replace(File.separatorChar, '/')));
+			} catch (MalformedURLException e) {
+				System.out.println(e);
+			}
+		}
+		return relativeUrls;
+	}
 
 	/**
 	 * Return a list of files for each resource base that matches the patterns
@@ -94,6 +117,26 @@ public class JSTestSuiteRunnerService {
 			scanner.setBasedir(resourceBase);
 			scanner.scan();
 			includedUrls.addAll(relativeFilepathsAsUrls(host, port,
+					scanner.getIncludedFiles()));
+		}
+		return includedUrls;
+	}
+    /**
+	 * Return a list of files for each resource base that matches the patterns
+	 * of includes and excludes.
+	 *
+	 * @return the list of urls with url prefix from externalResourceProvider
+	 */
+	public static List<URL> scanTestFiles(String externalResourceProviderUrlPrefix,
+			String[] resourceBases, String[] includes, String[] excludes) {
+		List<URL> includedUrls = new ArrayList<URL>();
+		DirectoryScanner scanner = new DirectoryScanner();
+		scanner.setIncludes(includes);
+		scanner.setExcludes(excludes);
+		for (String resourceBase : resourceBases) {
+			scanner.setBasedir(resourceBase);
+			scanner.scan();
+			includedUrls.addAll(relativeFilepathsAsUrls(externalResourceProviderUrlPrefix,
 					scanner.getIncludedFiles()));
 		}
 		return includedUrls;

@@ -110,7 +110,8 @@ function processTestAndLoadNext(testUrls) {
 						}
 
 						xhr = new XMLHttpRequest();
-						xhr.open("POST", "/testResults", false);
+                        // TODO: host and port should be given as argument
+						xhr.open("POST", "http://localhost:9080/testResults", false);
 						xhr.setRequestHeader("Content-Type", "application/json");
 						try {
 							xhr.send(JSON.stringify({
